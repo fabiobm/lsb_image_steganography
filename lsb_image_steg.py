@@ -11,6 +11,9 @@ class LSBImageSteganography:
     def __init__(self, filename):
         self.image = Image.open(filename)
 
+        if self.image.mode != 'RGB':
+            self.image = self.image.convert('RGB')
+
     def encode(self, message):
         """
         Encode `message` into the image.
