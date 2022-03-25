@@ -16,17 +16,17 @@ class LSBImageSteganography:
 
     def encode(self, message):
         """
-        Encode `message` into the image.
+        Encodes a bytes `message` into the image.
 
         Raises `ValueError` if the message's length is too big to encode
         in the current image.
         """
 
-        pixels = self.image.load()
+        pixels = self.image.getdata()
 
         available_bits = self.image.width * self.image.height * 3
 
-        # add the message length in bytes at the beginning
+        # add the message length in binary at the beginning
         message_length = len(message).to_bytes(
             ceil(len(message).bit_length() / 8), "big"
         )
@@ -37,18 +37,25 @@ class LSBImageSteganography:
         if required_bits > available_bits:
             raise ValueError("Image is not big enough to store the message")
 
+        encoded_data = []
         for i, byte in enumerate(message_with_size):
             for j in range(8):
                 bit = (byte >> (7 - j)) & 1
                 idx = i * 8 + j
-                xy = ((idx // 3) % self.image.width, idx // (3 * self.image.width))
-                color = pixels[xy][idx % 3]
+                color = pixels[idx // 3][idx % 3]
 
-                pixels[xy] = (
-                    *pixels[xy][: idx % 3],
-                    color | 1 if bit else color & ~1,
-                    *pixels[xy][(idx % 3) + 1 :],
-                )
+                new_color = color | 1 if bit else color & ~1
+                if idx % 3 == 0:
+                    encoded_data.append([new_color])
+                elif idx % 3 == 1:
+                    encoded_data[-1].append(new_color)
+                else:
+                    encoded_data[-1] = (*encoded_data[-1], new_color)
+
+        if len(encoded_data[-1]) < 3:
+            encoded_data[-1] = (*encoded_data[-1], *pixels[idx // 3][len(encoded_data[-1]):])
+
+        self.image.putdata(encoded_data)
 
     def decode(self):
         """
@@ -56,8 +63,7 @@ class LSBImageSteganography:
 
         Returns a `bytes` object with the decoded message.
         """
-
-        pixels = self.image.load()
+        pixels = self.image.getdata()
 
         size = None
         message = b""
@@ -69,9 +75,9 @@ class LSBImageSteganography:
             next_byte = 0
             for j in range(8):
                 idx = i * 8 + j
-                color = pixels[
-                    (idx // 3) % self.image.width, idx // (3 * self.image.width)
-                ][idx % 3]
+                if idx // 3 >= len(pixels):
+                    return message
+                color = pixels[idx // 3][idx % 3]
                 bit = color & 1
                 next_byte += bit << (7 - j)
 
