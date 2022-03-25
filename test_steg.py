@@ -1,5 +1,5 @@
 from lsb_image_steg import LSBImageSteganography
-from unittest import TestCase
+from unittest import TestCase, main
 
 
 class TestSteg(TestCase):
@@ -28,3 +28,7 @@ class TestSteg(TestCase):
             self.assertEqual(
                 str(e.exception), "Image is not big enough to store the message"
             )
+
+
+if __name__ == '__main__':
+    main()

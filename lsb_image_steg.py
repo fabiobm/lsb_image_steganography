@@ -85,3 +85,14 @@ class LSBImageSteganography:
                 message += bytes([next_byte])
 
         return message
+
+    def save(self, filename, format):
+        """
+        Saves the current image.
+
+        Saves to the path provided in `filename` or the original path from the
+        constructor, with the format provided in `format` or the original
+        format.
+        """
+
+        self.image.save(filename or self.filename, format or self.image.format)
