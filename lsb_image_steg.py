@@ -11,8 +11,8 @@ class LSBImageSteganography:
     def __init__(self, filename):
         self.image = Image.open(filename)
 
-        if self.image.mode != 'RGB':
-            self.image = self.image.convert('RGB')
+        if self.image.mode != "RGB":
+            self.image = self.image.convert("RGB")
 
     def encode(self, message):
         """
@@ -53,7 +53,10 @@ class LSBImageSteganography:
                     encoded_data[-1] = (*encoded_data[-1], new_color)
 
         if len(encoded_data[-1]) < 3:
-            encoded_data[-1] = (*encoded_data[-1], *pixels[idx // 3][len(encoded_data[-1]):])
+            encoded_data[-1] = (
+                *encoded_data[-1],
+                *pixels[idx // 3][len(encoded_data[-1]) :],
+            )
 
         self.image.putdata(encoded_data)
 
