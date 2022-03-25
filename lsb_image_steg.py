@@ -39,7 +39,7 @@ class LSBImageSteganography:
 
         for i, byte in enumerate(message_with_size):
             for j in range(8):
-                bit = (byte >> j) & 1
+                bit = (byte >> (7 - j)) & 1
                 idx = i * 8 + j
                 xy = ((idx // 3) % self.image.width, idx // (3 * self.image.width))
                 color = pixels[xy][idx % 3]
@@ -73,7 +73,7 @@ class LSBImageSteganography:
                     (idx // 3) % self.image.width, idx // (3 * self.image.width)
                 ][idx % 3]
                 bit = color & 1
-                next_byte += bit << j
+                next_byte += bit << (7 - j)
 
             if size is None and next_byte == 0:
                 size = int.from_bytes(message, "big")
