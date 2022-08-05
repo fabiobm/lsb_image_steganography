@@ -59,6 +59,4 @@
     }
 </style>
 
-<slot name="before" hidden={hidden}></slot>
 <img bind:this={imageEl} alt={loading ? 'loading...' : alt} class:hidden class={size} />
-<slot name="after" hidden={hidden}></slot>

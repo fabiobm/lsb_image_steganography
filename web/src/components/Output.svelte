@@ -1,5 +1,5 @@
 <script>
-    import { encode, imageFilename, output } from '../stores'
+    import { decodeFile, encode, imageFilename, output } from '../stores'
     import Button from './Button.svelte'
     import ImagePreview from './ImagePreview.svelte'
 
@@ -29,20 +29,28 @@
 
 {#if $encode}
     <div>
-        <ImagePreview alt="output" src={$output} size="md">
-            <svelte:fragment slot="after">
-                {#if !$output}
-                    —
-                {:else}
-                    <Button style={buttonStyle + "padding: 0;"}>
-                        <a href={$output} download={$imageFilename}>
-                            Download image
-                        </a>
-                    </Button>
-                {/if}
-            </svelte:fragment>
-        </ImagePreview>
+        <ImagePreview alt="output" src={$output} size="md" />
+
+        {#if !$output}
+            —
+        {:else}
+            <Button style={buttonStyle + "padding: 0;"}>
+                <a href={$output} download={$imageFilename}>
+                    Download image
+                </a>
+            </Button>
+        {/if}
     </div>
+{:else if $decodeFile}
+    {#if !$output}
+        <pre>-</pre>
+    {:else}
+        <Button style={buttonStyle}>
+            <a href={$output} download="decoded.bin">
+                Download file
+            </a>
+        </Button>
+    {/if}
 {:else}
     <pre>{$output || '—'}</pre>
     {#if $output}
