@@ -1,4 +1,5 @@
-from PIL import Image
+from PIL import Image, ImageCms
+from io import BytesIO
 from math import ceil
 
 
@@ -13,6 +14,13 @@ class LSBImageSteganography:
 
         if self.image.mode != "RGB":
             self.image = self.image.convert("RGB")
+
+        if "icc_profile" in self.image.info:
+            self.image = ImageCms.profileToProfile(
+                self.image,
+                BytesIO(self.image.info["icc_profile"]),
+                ImageCms.createProfile("sRGB"),
+            )
 
     def encode(self, message):
         """
@@ -104,4 +112,8 @@ class LSBImageSteganography:
         format.
         """
 
-        self.image.save(filename or self.filename, format or self.image.format)
+        self.image.save(
+            filename or self.filename,
+            format=format or self.image.format,
+            icc_profile=self.image.info.get("icc_profile", ""),
+        )
