@@ -9,8 +9,11 @@ class LSBImageSteganography:
     of each pixel's RGB channels.
     """
 
-    def __init__(self, filename):
-        self.image = Image.open(filename)
+    def __init__(self, filename, img_bytes=None):
+        if img_bytes is not None and isinstance(img_bytes, bytes):
+            self.image = Image.open(BytesIO(img_bytes))
+        else:
+            self.image = Image.open(filename)
 
         if self.image.mode != "RGB":
             self.image = self.image.convert("RGB")
@@ -107,9 +110,9 @@ class LSBImageSteganography:
         """
         Saves the current image.
 
-        Saves to the path provided in `filename` or the original path from the
-        constructor, with the format provided in `format` or the original
-        format.
+        Saves to the path or bytearray provided in `filename` or the
+        original path from the constructor, with the format provided in
+        `format` or the original format.
         """
 
         self.image.save(
