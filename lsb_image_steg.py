@@ -77,20 +77,21 @@ class LSBImageSteganography:
 
         Returns a `bytes` object with the decoded message.
         """
+        image_size = self.image.width * self.image.height
         pixels = self.image.getdata()
 
         found_separator = False
         size = None
         message = b""
 
-        for i in range(self.image.width * self.image.height * 3):
+        for i in range(image_size * 3):
             if size and len(message) >= size:
                 break
 
             next_byte = 0
             for j in range(8):
                 idx = i * 8 + j
-                if idx // 3 >= len(pixels):
+                if idx // 3 >= image_size:
                     return message
                 color = pixels[idx // 3][idx % 3]
                 bit = color & 1
@@ -105,6 +106,8 @@ class LSBImageSteganography:
 
                     if size == 0:
                         return b""
+                elif int.from_bytes(message, "big") + len(message) + 1 > image_size * 3:
+                    raise ValueError("No stored message found")
 
             message += bytes([next_byte])
 

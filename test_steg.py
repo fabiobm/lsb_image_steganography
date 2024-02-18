@@ -38,6 +38,14 @@ class TestSteg(TestCase):
         steg = LSBImageSteganography('test', ba.getvalue())
         self.assertEqual(steg.decode(), b"\x6b")
 
+    def test_no_message_heuristic(self):
+        steg = LSBImageSteganography("sample.jpg")
+        with self.assertRaises(ValueError) as e:
+            steg.decode()
+            self.assertEqual(
+                str(e.exception), "No stored message found"
+            )
+
     def test_too_big(self):
         message = b"a" * 481500
         steg = LSBImageSteganography("sample.jpg")
