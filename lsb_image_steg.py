@@ -79,6 +79,7 @@ class LSBImageSteganography:
         """
         pixels = self.image.getdata()
 
+        found_separator = False
         size = None
         message = b""
 
@@ -95,14 +96,17 @@ class LSBImageSteganography:
                 bit = color & 1
                 next_byte += bit << (7 - j)
 
-            if size is None and next_byte == 0:
-                size = int.from_bytes(message, "big")
-                message = b""
+            if size is None:
+                if next_byte == 0:
+                    found_separator = True
+                elif found_separator:
+                    size = int.from_bytes(message[:-1], "big")
+                    message = b""
 
-                if size == 0:
-                    return b""
-            else:
-                message += bytes([next_byte])
+                    if size == 0:
+                        return b""
+
+            message += bytes([next_byte])
 
         return message
 
