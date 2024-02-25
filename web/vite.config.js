@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
@@ -15,5 +16,8 @@ export default defineConfig({
         }
       ]
     })
-  ]
+  ],
+  test: {
+    watch: false
+  }
 })
