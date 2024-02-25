@@ -34,14 +34,12 @@ export function encode(canvas, message) {
     const availableBits = canvas.width * canvas.height * 3
 
     // add the message length in binary at the beginning
-    const numBytes = Math.ceil(Math.ceil(Math.log2(messageBytes.length)) / 8)
+    const numBytes = messageBytes.length === 0
+        ? 0
+        : Math.ceil(Math.floor(Math.log2(messageBytes.length) + 1) / 8)
     const messageWithSize = new Uint8Array(new ArrayBuffer(numBytes + 1 + messageBytes.length))
-    const binaryMessageLength = message.length.toString(2).padStart(8 * numBytes, '0')
     for (let i = 0; i < numBytes; i++) {
-        const bits = binaryMessageLength.slice(i * 8, (i + 1) * 8)
-        const byte = parseInt(bits, 2)
-
-        messageWithSize[i] = byte
+        messageWithSize[i] = (message.length >> ((numBytes - 1 - i) * 8)) & 0xff
     }
 
     messageWithSize[numBytes] = 0x0
@@ -89,14 +87,12 @@ export function decode(canvas, bytes = false) {
     const ctx = canvas.getContext('2d')
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data
 
+    let foundSeparator = false
     let size = null
-    let buffer = null
-    let message = ''
-    let bytesMessage = null
-    let byteCounter = 0
+    let bytesMessage = []
 
     for (let i = 0; i < canvas.width * canvas.height * 3; i++) {
-        if (size && byteCounter >= size) {
+        if (size && bytesMessage.length >= size) {
             break
         }
 
@@ -110,36 +106,38 @@ export function decode(canvas, bytes = false) {
             nextByte += bit << (7 - j)
         }
 
-        if (size === null && nextByte === 0) {
-            if (!message) {
-                return bytes ? new ArrayBuffer(0) : ''
-            }
-
-            size = parseInt(message, 2)
-
-            if (bytes) {
-                buffer = new ArrayBuffer(size)
-                bytesMessage = new Uint8Array(buffer)
-            } else {
-                message = ''
-            }
-
-            if (size === 0) {
-                return bytes ? new ArrayBuffer(0) : ''
-            }
-        } else {
-            if (size === null) {
-                message += nextByte.toString(2).padStart(8, '0')
-            } else {
-                if (bytes) {
-                    bytesMessage[byteCounter] = nextByte
-                } else {
-                    message += new TextDecoder('utf-8').decode(new Uint8Array([nextByte]))
+        if (size === null) {
+            if (nextByte === 0) {
+                foundSeparator = true
+            } else if (foundSeparator) {
+                if (bytesMessage.length === 0) {
+                    return bytes ? new ArrayBuffer(0) : ''
                 }
-                byteCounter++
+
+                size = 0
+                for (let i = 0; i < bytesMessage.length - 1; i++) {
+                    size = (size << 8) + bytesMessage[i]
+                }
+                bytesMessage = []
+
+                if (size === 0) {
+                    return bytes ? new ArrayBuffer(0) : ''
+                }
+            } else {
+                let currentSize = 0
+                for (let i = 0; i < bytesMessage.length; i++) {
+                    currentSize = (currentSize << 8) + bytesMessage[i]
+                }
+
+                if (currentSize + bytesMessage.length + 1 > canvas.width * canvas.height * 3) {
+                    throw new Error('No stored message found')
+                }
             }
         }
+
+        bytesMessage.push(nextByte)
     }
 
-    return bytes ? buffer : message
+    const buffer = new Uint8Array(bytesMessage)
+    return bytes ? buffer : new TextDecoder('utf-8').decode(buffer)
 }
