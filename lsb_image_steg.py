@@ -1,3 +1,4 @@
+import numpy as np
 from PIL import Image, ImageCms
 from io import BytesIO
 from math import ceil
@@ -33,7 +34,7 @@ class LSBImageSteganography:
         in the current image.
         """
 
-        pixels = self.image.getdata()
+        pixels = np.array(self.image).flatten()
 
         available_bits = self.image.width * self.image.height * 3
 
@@ -48,26 +49,12 @@ class LSBImageSteganography:
         if required_bits > available_bits:
             raise ValueError("Image is not big enough to store the message")
 
-        encoded_data = []
-        for i, byte in enumerate(message_with_size):
-            for j in range(8):
-                bit = (byte >> (7 - j)) & 1
-                idx = i * 8 + j
-                color = pixels[idx // 3][idx % 3]
-
-                new_color = color | 1 if bit else color & ~1
-                if idx % 3 == 0:
-                    encoded_data.append([new_color])
-                elif idx % 3 == 1:
-                    encoded_data[-1].append(new_color)
-                else:
-                    encoded_data[-1] = (*encoded_data[-1], new_color)
-
-        if len(encoded_data[-1]) < 3:
-            encoded_data[-1] = (
-                *encoded_data[-1],
-                *pixels[idx // 3][len(encoded_data[-1]) :],
-            )
+        encoded_data = (pixels[:required_bits] & ~1) | [int(bit) for byte in message_with_size for bit in f'{byte:08b}']
+        encoded_data = [(
+            encoded_data[i],
+            encoded_data[i + 1] if i + 1 < len(encoded_data) else pixels[i + 1],
+            encoded_data[i + 2] if i + 2 < len(encoded_data) else pixels[i + 2]
+        ) for i in range(0, len(encoded_data), 3)]
 
         self.image.putdata(encoded_data)
 
@@ -77,15 +64,15 @@ class LSBImageSteganography:
 
         Returns a `bytes` object with the decoded message.
         """
+        pixels = np.array(self.image).flatten()
         image_size = self.image.width * self.image.height
-        pixels = self.image.getdata()
 
         found_separator = False
         size = None
         message = b""
 
         for i in range(image_size * 3):
-            if size and len(message) >= size:
+            if size:
                 break
 
             next_byte = 0
@@ -93,23 +80,28 @@ class LSBImageSteganography:
                 idx = i * 8 + j
                 if idx // 3 >= image_size:
                     return message
-                color = pixels[idx // 3][idx % 3]
+                color = pixels[idx]
                 bit = color & 1
                 next_byte += bit << (7 - j)
 
-            if size is None:
-                if next_byte == 0:
-                    found_separator = True
-                elif found_separator:
-                    size = int.from_bytes(message[:-1], "big")
-                    message = b""
+            if next_byte == 0:
+                found_separator = True
+            elif found_separator:
+                size = int.from_bytes(message[:-1], "big")
+                message = b""
 
-                    if size == 0:
-                        return b""
-                elif int.from_bytes(message, "big") + len(message) + 1 > image_size * 3:
-                    raise ValueError("No stored message found")
+                if size == 0:
+                    return b""
+            elif int.from_bytes(message, "big") + len(message) + 1 > image_size * 3:
+                raise ValueError("No stored message found")
 
             message += bytes([next_byte])
+
+        size_length = ceil(size.bit_length() / 8)
+        lsbs = pixels[(size_length + 1) * 8:(size + size_length + 1) * 8] & 1
+
+        binary_message = ''.join(map(str, lsbs))
+        message = bytes([int(binary_message[i:i + 8], 2) for i in range(0, len(binary_message), 8)])
 
         return message
 
