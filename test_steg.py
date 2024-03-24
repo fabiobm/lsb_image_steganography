@@ -28,23 +28,29 @@ class TestSteg(TestCase):
     def test_no_message_artificial_value(self):
         # create 'artificial' image with pixels forming a message even though it wasn't encoded
         image = Image.new("RGB", (4, 2), 1)
-        image.putdata([
-            (10, 20, 30), (40, 50, 60), (70, 81, 90), (100, 110, 120),
-            (130, 140, 150), (160, 170, 181), (191, 200, 211), (220, 231, 241)
-        ])
+        image.putdata(
+            [
+                (10, 20, 30),
+                (40, 50, 60),
+                (70, 81, 90),
+                (100, 110, 120),
+                (130, 140, 150),
+                (160, 170, 181),
+                (191, 200, 211),
+                (220, 231, 241),
+            ]
+        )
         ba = BytesIO()
-        image.save(ba, 'PNG')
+        image.save(ba, "PNG")
 
-        steg = LSBImageSteganography('test', ba.getvalue())
+        steg = LSBImageSteganography("test", ba.getvalue())
         self.assertEqual(steg.decode(), b"\x6b")
 
     def test_no_message_heuristic(self):
         steg = LSBImageSteganography("sample.jpg")
         with self.assertRaises(ValueError) as e:
             steg.decode()
-            self.assertEqual(
-                str(e.exception), "No stored message found"
-            )
+            self.assertEqual(str(e.exception), "No stored message found")
 
     def test_too_big(self):
         message = b"a" * 481500

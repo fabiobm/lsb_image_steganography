@@ -49,12 +49,17 @@ class LSBImageSteganography:
         if required_bits > available_bits:
             raise ValueError("Image is not big enough to store the message")
 
-        encoded_data = (pixels[:required_bits] & ~1) | [int(bit) for byte in message_with_size for bit in f'{byte:08b}']
-        encoded_data = [(
-            encoded_data[i],
-            encoded_data[i + 1] if i + 1 < len(encoded_data) else pixels[i + 1],
-            encoded_data[i + 2] if i + 2 < len(encoded_data) else pixels[i + 2]
-        ) for i in range(0, len(encoded_data), 3)]
+        encoded_data = (pixels[:required_bits] & ~1) | [
+            int(bit) for byte in message_with_size for bit in f"{byte:08b}"
+        ]
+        encoded_data = [
+            (
+                encoded_data[i],
+                encoded_data[i + 1] if i + 1 < len(encoded_data) else pixels[i + 1],
+                encoded_data[i + 2] if i + 2 < len(encoded_data) else pixels[i + 2],
+            )
+            for i in range(0, len(encoded_data), 3)
+        ]
 
         self.image.putdata(encoded_data)
 
@@ -98,10 +103,15 @@ class LSBImageSteganography:
             message += bytes([next_byte])
 
         size_length = ceil(size.bit_length() / 8)
-        lsbs = pixels[(size_length + 1) * 8:(size + size_length + 1) * 8] & 1
+        lsbs = pixels[(size_length + 1) * 8 : (size + size_length + 1) * 8] & 1
 
-        binary_message = ''.join(map(str, lsbs))
-        message = bytes([int(binary_message[i:i + 8], 2) for i in range(0, len(binary_message), 8)])
+        binary_message = "".join(map(str, lsbs))
+        message = bytes(
+            [
+                int(binary_message[i : i + 8], 2)
+                for i in range(0, len(binary_message), 8)
+            ]
+        )
 
         return message
 
